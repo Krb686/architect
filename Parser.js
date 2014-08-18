@@ -76,9 +76,11 @@ function Parser(){
 		};
 	}
 	
-	
+	//Regular Expression Stuff
 	var _insideRegExp = false;
 	var _regExpEscapeChar = false;
+	var _regExpSpecialChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@$)}]<>";
+	var _regExpRestriction = false;
 	var _tempRegExpObject = {
 		length: 0,
 		text: "",
@@ -130,7 +132,6 @@ function Parser(){
 					if(_regExpEscapeChar){
 						_regExpEscapeChar = false;
 					}
-				
 			} else {
 				//currently do nothing
 				if(_forwardSlashCount === 1){
