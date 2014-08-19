@@ -179,7 +179,7 @@ function Parser(){
 			}
 		},
 		
-		
+		/*
 		" ":  function(){
 			if(_insideComment){
 			
@@ -197,6 +197,7 @@ function Parser(){
 		
 		
 		},
+		*/
 		
 		
 		
