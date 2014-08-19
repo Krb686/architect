@@ -133,20 +133,72 @@ function Parser(){
 						_regExpEscapeChar = false;
 					}
 			} else {
-				//currently do nothing
+				
 				if(_forwardSlashCount === 1){
+					//will enter this block only for reg exp or division statements
 					_forwardSlashCount = 0;
+					
+					if(_currentLine === 37750){
+						console.log("hey");
+					}
 					if(currentChar != " "){
-						_insideRegExp = true;
-						_tempRegExpObject.length++;
-						_tempRegExpObject.text += currentChar;
+						
+						if(_regExpRestriction){
+							
+							_regExpRestriction = false;
+						} else {
+							_insideRegExp = true;
+							_tempRegExpObject.length++;
+							_tempRegExpObject.text += currentChar;
+						}
+						
+
 					} else {
 						//currently do nothing
+						//case with "/ stuff"
 						resetTempRegExp();
 					}
-				}		
+				}	
+				
+				//		)// vs )/10
+				
+				//var test =  (3 * 5)/10 !/w2eee
+				
+				//chars that could turn off reg exp restriction
+				
+				
+				if((_regExpSpecialChars.indexOf(currentChar) > -1) && _regExpRestriction === false){
+					_regExpRestriction = true;
+					//console.log("true after: " + currentChar + " at line " + _currentLine);
+				} else {
+					if(_regExpRestriction){
+						//
+						_regExpRestriction = false;
+					} 
+				}	
 			}
 		},
+		
+		
+		" ":  function(){
+			if(_insideComment){
+			
+			} else if(_insideString){
+			
+			} else if(_insideRegExp){
+			
+			} else {
+				if(_forwardSlashCount === 1){
+					_forwardSlashCount = 0;
+					resetTempRegExp();
+				}
+				
+			}
+		
+		
+		},
+		
+		
 		
 		"/": function(){
 		
@@ -212,13 +264,17 @@ function Parser(){
 				} else {
 					//Could potentially be a reg exp
 					//Must be first char after an =, (, {, [, |, !, #, %, ^, &, *, -, +, \, ?, :, ;
-					//Or, NOT after letter, number, @, $, ), }, ], <, >, 
-					resetTempRegExp();
+					//Or, NOT after letter, number, @, $, ), }, ], <, >,
+
+					if(_regExpRestriction){
+						//
+					} else {
+						resetTempRegExp();
 					
-					//var test = ./ff
-					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
-					_tempRegExpObject.startLine = _currentLine;
+						_tempRegExpObject.length++;
+						_tempRegExpObject.text += currentChar;
+						_tempRegExpObject.startLine = _currentLine;
+					}
 				}
 			
 			}		
@@ -261,6 +317,10 @@ function Parser(){
 					_tempRegExpObject.text += currentChar;
 					_regExpEscapeChar = true;
 					_insideRegExp = true;
+				}
+				
+				if(_regExpRestriction){
+					_regExpRestriction = false;
 				}
 			}
 		},
@@ -308,6 +368,10 @@ function Parser(){
 					_insideString = true;
 					_stringType = "single";
 					_tempStringObject.startLine = _currentLine;
+				}
+				
+				if(_regExpRestriction){
+					_regExpRestriction = false;
 				}
 			}		
 		},
@@ -359,6 +423,10 @@ function Parser(){
 					_stringType = "double";
 					_tempStringObject.startLine = _currentLine;
 				}
+				
+				if(_regExpRestriction){
+					_regExpRestriction = false;
+				}
 			}
 			
 			if(_forwardSlashCount === 1){
@@ -390,8 +458,14 @@ function Parser(){
 				} else {
 					//Houston we have a problem
 				}
-			} else {
+			} else if(_insideString){
 			
+			} else if(_insideRegExp){
+			
+			} else {
+				if(_regExpRestriction){
+					_regExpRestriction = false;
+				}
 			}
 		
 		},
@@ -449,6 +523,10 @@ function Parser(){
 					_insideComment = true;
 					_commentType = "multi";
 				}
+				
+				if(_regExpRestriction){
+					_regExpRestriction = false;
+				}
 			}
 				
 			
@@ -474,6 +552,7 @@ function Parser(){
 		var _lineCount						= _lineArray.length;
         
 		console.log(_lineCount + ' lines of code in source file');	
+		
 		
 		//Main parsing loop
 		for(var i=0;i<_fileLength;i++){
