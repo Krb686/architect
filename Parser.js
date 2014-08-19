@@ -167,9 +167,12 @@ function Parser(){
 				//chars that could turn off reg exp restriction
 				
 				
-				if((_regExpSpecialChars.indexOf(currentChar) > -1) && _regExpRestriction === false){
-					_regExpRestriction = true;
-					//console.log("true after: " + currentChar + " at line " + _currentLine);
+				if((_regExpSpecialChars.indexOf(currentChar) > -1)){
+					if(_regExpRestriction){
+						
+					} else {
+						_regExpRestriction = true;
+					}
 				} else {
 					if(_regExpRestriction){
 						//
@@ -192,6 +195,16 @@ function Parser(){
 					_forwardSlashCount = 0;
 					resetTempRegExp();
 				}
+				
+				if((_regExpSpecialChars.indexOf(currentChar) > -1) && _regExpRestriction === false){
+					_regExpRestriction = true;
+					//console.log("true after: " + currentChar + " at line " + _currentLine);
+				} else {
+					if(_regExpRestriction){
+						//
+						_regExpRestriction = false;
+					} 
+				}	
 				
 			}
 		
