@@ -262,7 +262,6 @@ function Parser(){
 					_tempRegExpObject.endLine = _currentLine;
 					
 					_regExpObjects.push(_tempRegExpObject);
-					winston.log('info', _tempRegExpObject);
 					resetTempRegExp();
 				}
 			} else {
@@ -448,6 +447,10 @@ function Parser(){
 			}
 		},
 		
+		"\r": function(){
+			//Currently ignore carriage returns
+		},
+		
 		"\n": function(){
 			_currentLine++;
 			
@@ -582,31 +585,21 @@ function Parser(){
 	};
 	
 	this.dumpStrings = function(){
-		console.log("\\");
-		var longestLength = 0;
-		var longestStartLine = 0;
-		var longestEndLine = 0;
-		var longestStr = "";
+
 		for(var i=0;i<_stringObjects.length;i++){
-			var string = _stringObjects[i].text;
-			if(string.length > longestLength){
-				longestLength = string.length;
-				longestStr = string;
-				longestStartLine = _stringObjects[i].startLine;
-				longestEndLine = _stringObjects[i].endLine;
-			}
-			
-			if(string.length > 72){
-				break;
-			};
-			//console.log("String #" + i + " - Line  " + _stringObjects[i].startLine + ": " + string);
-			if(i === 13943){
-				//console.log("String #" + i + " - Line  " + _stringObjects[i].startLine + ": " + string);
-			}
+			winston.log('info', _stringObjects[i]);
 		}
-		console.log(longestStr);
-		console.log("Length: " + longestLength);
-		console.log("Start: " + longestStartLine);
-		console.log("End: " + longestEndLine);
+	}, 
+	
+	this.dumpRegularExpressions = function(){
+		for(var i=0;i<_regExpObjects.length;i++){
+			winston.log('info', _regExpObjects[i]);
+		}
+	},
+	
+	this.dumpComments = function(){
+		for(var i=0;i<_commentObjects.length;i++){
+			winston.log('info', _commentObjects[i]);
+		}
 	}
 }
