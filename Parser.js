@@ -224,16 +224,20 @@ function Parser(){
 						//End the multi line comment
 						_forwardSlashCount = 0;
 						_insideComment = false;
+						_tempCommentObject.multiLine = true;
+						_tempCommentObject.endLine = _currentLine;
 						_commentType = "";
 						
 						//Create the multiline comment object
 						if(_commentLength > 0){
 							_commentObjects.push(_tempCommentObject);
-							resetTempComment();
+							
 							_commentLength = 0;
 						} else {
 							//Empty multi-line comment
 						}
+						
+						resetTempComment();
 					} else {
 						_commentLength++;
 						_tempCommentObject.text += currentChar;
@@ -271,6 +275,7 @@ function Parser(){
 					_insideComment = true;
 					_commentType = "single";
 					_forwardSlashCount = 0;
+					_tempCommentObject.startLine = _currentLine;
 					
 					resetTempRegExp();
 					
@@ -452,7 +457,6 @@ function Parser(){
 		},
 		
 		"\n": function(){
-			_currentLine++;
 			
 			if(_forwardSlashCount === 1){
 				_forwardSlashCount = 0;
@@ -461,6 +465,7 @@ function Parser(){
 			if(_insideComment){
 				if(_commentType === "single"){
 					_insideComment = false;
+					_tempCommentObject.endLine = _currentLine;
 					//Normal single line comment
 					if(_commentLength > 0){
 						_commentObjects.push(_tempCommentObject);
@@ -484,6 +489,8 @@ function Parser(){
 					_regExpRestriction = false;
 				}
 			}
+			
+			_currentLine++;
 		
 		},
 		
@@ -539,6 +546,7 @@ function Parser(){
 					_forwardSlashCount = 0;
 					_insideComment = true;
 					_commentType = "multi";
+					_tempCommentObject.startLine = _currentLine;
 				}
 				
 				if(_regExpRestriction){
