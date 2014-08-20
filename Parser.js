@@ -138,9 +138,6 @@ function Parser(){
 					//will enter this block only for reg exp or division statements
 					_forwardSlashCount = 0;
 					
-					if(_currentLine === 37750){
-						console.log("hey");
-					}
 					if(currentChar != " "){
 						
 						if(_regExpRestriction){
@@ -152,20 +149,12 @@ function Parser(){
 							_tempRegExpObject.text += currentChar;
 						}
 						
-
 					} else {
 						//currently do nothing
 						//case with "/ stuff"
 						resetTempRegExp();
 					}
-				}	
-				
-				//		)// vs )/10
-				
-				//var test =  (3 * 5)/10 !/w2eee
-				
-				//chars that could turn off reg exp restriction
-				
+				}				
 				
 				if((_regExpSpecialChars.indexOf(currentChar) > -1)){
 					if(_regExpRestriction){
@@ -182,37 +171,48 @@ function Parser(){
 			}
 		},
 		
-		/*
+		
+		
 		" ":  function(){
 			if(_insideComment){
-			
-			} else if(_insideString){
-			
-			} else if(_insideRegExp){
-			
-			} else {
-				if(_forwardSlashCount === 1){
-					_forwardSlashCount = 0;
-					resetTempRegExp();
+				_commentLength++;
+				_tempCommentObject.text += currentChar;
+				_tempCommentObject.length++;
+				
+				if(_commentType === "single"){
+					//do something
+				} else if(_commentType === "multi"){
+					if(_multiLineEndStar){
+						_multiLineEndStar = false;
+					}
+				} else {
+					//Not supposed to be here
 				}
 				
-				if((_regExpSpecialChars.indexOf(currentChar) > -1) && _regExpRestriction === false){
-					_regExpRestriction = true;
-					//console.log("true after: " + currentChar + " at line " + _currentLine);
-				} else {
-					if(_regExpRestriction){
-						//
-						_regExpRestriction = false;
-					} 
-				}	
+			} else if(_insideString){
+				_tempStringObject.length++;
+				_tempStringObject.text += currentChar;
+				if(_stringEscapeChar){
+					_stringEscapeChar = false;
+				}
+			} else if (_insideRegExp){
+					_tempRegExpObject.length++;
+					_tempRegExpObject.text += currentChar;
+					if(_regExpEscapeChar){
+						_regExpEscapeChar = false;
+					}
+			} else {
+				
+				if(_forwardSlashCount === 1){
+					//will enter this block only for reg exp or division statements
+					_forwardSlashCount = 0;
+					resetTempRegExp();
+				}				
 				
 			}
 		
 		
 		},
-		*/
-		
-		
 		
 		"/": function(){
 		
