@@ -15,12 +15,13 @@ module.exports = Parser;
 //CODE
 function Parser(){
 
-	var currentChar = "";
+	var _currentChar = "";
 	
 	//FileState
 	var _fileName = "";
 	var _fileString = "";
 	var _fileLength = 0;
+	var _fileIndex = 0;
 	
 	//LineState
 	var _currentLine = 1;
@@ -95,19 +96,51 @@ function Parser(){
 			startLine: 0,
 			endLine: 0
 		};
-	}
+	};
+	
+	//Function stuff
+	var functionText = ['f', 'u', 'n', 'c', 't', 'i', 'o', 'n'];
+	var functionCheckIndex = 0;
+	var functionFlag = true;
+	var _tempFunctionObject = {
+		length: 0,
+		text: "",
+		startLine: 0,
+		endLine: 0,
+		parameters: [],
+		type: "",
+		name: "",
+		anonymous: false
+	};
+	
+	var resetFunctionObject = function(){
+		_tempFunctionObject = {
+			length: 0,
+			text: "",
+			startLine: 0,
+			endLine: 0,
+			parameters: [],
+			type: "",
+			name: "",
+			anonymous: false
+		};
+	};
+	
+	var alphaString = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+	var numericString = "0123456789";
 	
 	
 	//Object Arrays
 	var _commentObjects = [];
 	var _stringObjects = [];
 	var _regExpObjects = [];
+	var _functionObjects = [];
 	
 	var parseChar = {
 		"default": function(){
 			if(_insideComment){
 				_commentLength++;
-				_tempCommentObject.text += currentChar;
+				_tempCommentObject.text += _currentChar;
 				_tempCommentObject.length++;
 				
 				if(_commentType === "single"){
@@ -122,13 +155,13 @@ function Parser(){
 				
 			} else if(_insideString){
 				_tempStringObject.length++;
-				_tempStringObject.text += currentChar;
+				_tempStringObject.text += _currentChar;
 				if(_stringEscapeChar){
 					_stringEscapeChar = false;
 				}
 			} else if (_insideRegExp){
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					if(_regExpEscapeChar){
 						_regExpEscapeChar = false;
 					}
@@ -138,7 +171,7 @@ function Parser(){
 					//will enter this block only for reg exp or division statements
 					_forwardSlashCount = 0;
 					
-					if(currentChar != " "){
+					if(_currentChar != " "){
 						
 						if(_regExpRestriction){
 							
@@ -146,7 +179,7 @@ function Parser(){
 						} else {
 							_insideRegExp = true;
 							_tempRegExpObject.length++;
-							_tempRegExpObject.text += currentChar;
+							_tempRegExpObject.text += _currentChar;
 						}
 						
 					} else {
@@ -156,7 +189,8 @@ function Parser(){
 					}
 				}				
 				
-				if((_regExpSpecialChars.indexOf(currentChar) > -1)){
+				//Check if special char to enable regExpRestriction
+				if((_regExpSpecialChars.indexOf(_currentChar) > -1)){
 					if(_regExpRestriction){
 						
 					} else {
@@ -168,6 +202,53 @@ function Parser(){
 						_regExpRestriction = false;
 					} 
 				}	
+				
+				//Letters only go here
+				if((alphaString.indexOf(_currentChar) > -1)){
+					
+					if(_currentChar === functionText[functionCheckIndex]){
+						functionCheckIndex++;
+						if(functionCheckIndex === 8){
+							//If next char is a space or (, it is indeed a function. Otherwise, its a 
+							//variable or typo!!
+							if(_fileString[_fileIndex+1] === " " || _fileString[_fileIndex+1] === "("){
+								functionFlag = true;
+							
+								_tempFunctionObject.startLine = _currentLine;
+								_tempFunctionObject.length = 8;
+								_tempFunctionObject.text = "function"
+								functionCheckIndex = 0;
+								
+								var leadingChar = "";
+								var backwardsIndex = _fileIndex - 8;
+								
+								while(leadingChar !== "=" && leadingChar !== ":" && leadingChar !== "\n"){
+									leadingChar = _fileString[backwardsIndex--];
+								}
+								
+								if(leadingChar === "="){
+									_tempFunctionObject.type = "assignment";
+								} else if(leadingChar === ":"){
+									_tempFunctionObject.type = "property";
+								} else if(leadingChar === "\n"){
+									_tempFunctionObject.type = "declaration";
+								} else {
+									//Shouldn't be here!
+								}
+								
+								_functionObjects.push(_tempFunctionObject);
+								resetFunctionObject();
+							} else {
+								functionCheckIndex = 0;
+							}
+						}
+					} else {
+						functionCheckIndex = 0;
+					}
+				//Numbers only go here
+				} else if((numericString.indexOf(_currentChar) > -1)){
+				
+				}
 			}
 		},
 		
@@ -176,7 +257,7 @@ function Parser(){
 		" ":  function(){
 			if(_insideComment){
 				_commentLength++;
-				_tempCommentObject.text += currentChar;
+				_tempCommentObject.text += _currentChar;
 				_tempCommentObject.length++;
 				
 				if(_commentType === "single"){
@@ -191,13 +272,13 @@ function Parser(){
 				
 			} else if(_insideString){
 				_tempStringObject.length++;
-				_tempStringObject.text += currentChar;
+				_tempStringObject.text += _currentChar;
 				if(_stringEscapeChar){
 					_stringEscapeChar = false;
 				}
 			} else if (_insideRegExp){
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					if(_regExpEscapeChar){
 						_regExpEscapeChar = false;
 					}
@@ -240,7 +321,7 @@ function Parser(){
 						resetTempComment();
 					} else {
 						_commentLength++;
-						_tempCommentObject.text += currentChar;
+						_tempCommentObject.text += _currentChar;
 						_tempCommentObject.length++;
 					}
 				} else {
@@ -248,7 +329,7 @@ function Parser(){
 				}
 			} else if(_insideString){
 				_tempStringObject.length++;
-				_tempStringObject.text += currentChar;
+				_tempStringObject.text += _currentChar;
 				if(_stringEscapeChar){
 					_stringEscapeChar = false;
 				}
@@ -256,13 +337,13 @@ function Parser(){
 			} else if(_insideRegExp){
 				if(_regExpEscapeChar){
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					_regExpEscapeChar = false;
 				} else {
 					_insideRegExp = false;
 				
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					_tempRegExpObject.endLine = _currentLine;
 					
 					_regExpObjects.push(_tempRegExpObject);
@@ -290,7 +371,7 @@ function Parser(){
 						resetTempRegExp();
 					
 						_tempRegExpObject.length++;
-						_tempRegExpObject.text += currentChar;
+						_tempRegExpObject.text += _currentChar;
 						_tempRegExpObject.startLine = _currentLine;
 					}
 				}
@@ -312,7 +393,7 @@ function Parser(){
 				}
 			} else if (_insideString){
 				_tempStringObject.length++;
-				_tempStringObject.text += currentChar;
+				_tempStringObject.text += _currentChar;
 				if(_stringEscapeChar){
 					_stringEscapeChar = false;
 				} else {
@@ -321,7 +402,7 @@ function Parser(){
 			} else if(_insideRegExp){
 				//continue as normal
 				_tempRegExpObject.length++;
-				_tempRegExpObject.text += currentChar;
+				_tempRegExpObject.text += _currentChar;
 				if(_regExpEscapeChar){
 					_regExpEscapeChar = false;
 				} else {
@@ -332,7 +413,7 @@ function Parser(){
 				if(_forwardSlashCount === 1){
 					_forwardSlashCount = 0;
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					_regExpEscapeChar = true;
 					_insideRegExp = true;
 				}
@@ -365,7 +446,7 @@ function Parser(){
 					resetTempString();
 				} else if(_stringType === "double"){
 					_tempStringObject.length++;
-					_tempStringObject.text += currentChar;
+					_tempStringObject.text += _currentChar;
 				} else {
 					//Cannot have a stringType like this!
 				}
@@ -375,12 +456,12 @@ function Parser(){
 				}
 			} else if(_insideRegExp){
 				_tempRegExpObject.length++;
-				_tempRegExpObject.text += currentChar;
+				_tempRegExpObject.text += _currentChar;
 			} else {
 				if(_forwardSlashCount === 1){
 					_insideRegExp = true;
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 					_forwardSlashCount = 0;
 				} else {
 					_insideString = true;
@@ -410,11 +491,11 @@ function Parser(){
 			} else if(_insideString){
 				if(_stringType === "single"){
 					_tempStringObject.length++;
-					_tempStringObject.text += currentChar;
+					_tempStringObject.text += _currentChar;
 				} else if(_stringType === "double"){
 					if(_stringEscapeChar){
 						_tempStringObject.length++;
-						_tempStringObject.text += currentChar;
+						_tempStringObject.text += _currentChar;
 						_stringEscapeChar = false;
 					} else {
 						_insideString = false;
@@ -428,14 +509,14 @@ function Parser(){
 				}
 			} else if(_insideRegExp){
 				_tempRegExpObject.length++;
-				_tempRegExpObject.text += currentChar;
+				_tempRegExpObject.text += _currentChar;
 			
 			} else {
 				if(_forwardSlashCount === 1){
 					_forwardSlashCount = 0;
 					_insideRegExp = true;
 					_tempRegExpObject.length++;
-					_tempRegExpObject.text += currentChar;
+					_tempRegExpObject.text += _currentChar;
 				} else {
 					_insideString = true;
 					_stringType = "double";
@@ -525,7 +606,7 @@ function Parser(){
 					if(_multiLineEndStar){
 						//add as normal
 						_commentLength++;
-						_tempCommentObject.text += currentChar;
+						_tempCommentObject.text += _currentChar;
 						_tempCommentObject.length++;
 					}
 					_multiLineEndStar = true;
@@ -534,10 +615,10 @@ function Parser(){
 				}
 			} else if(_insideString){
 				_tempStringObject.length++;
-				_tempStringObject.text += currentChar;
+				_tempStringObject.text += _currentChar;
 			} else if(_insideRegExp){
 				_tempRegExpObject.length++;
-				_tempRegExpObject.text += currentChar;
+				_tempRegExpObject.text += _currentChar;
 				if(_regExpEscapeChar){
 					_regExpEscapeChar = false;
 				}
@@ -568,32 +649,32 @@ function Parser(){
 	this.parse = function(fileName){
 		
 		//File Stuff
-		var _fileName 						= fileName;
-		var _fileString						= fs.readFileSync(fileName, 'utf8');
-		var _fileLength						= _fileString.length;
+		_fileName 						= fileName;
+		_fileString						= fs.readFileSync(fileName, 'utf8');
+		_fileLength						= _fileString.length;
 		
 		//Line Stuff
-		var _lineArray						= _fileString.split('\n');
-		var _lineCount						= _lineArray.length;
+		_lineArray						= _fileString.split('\n');
+		_lineCount						= _lineArray.length;
         
 		console.log(_lineCount + ' lines of code in source file');	
 		
 		
 		//Main parsing loop
-		for(var i=0;i<_fileLength;i++){
-			currentChar = _fileString.charAt(i);
+		for(_fileIndex=0;_fileIndex<_fileLength;_fileIndex++){
+			
+			_currentChar = _fileString.charAt(_fileIndex);
 
 			//If a special char, use its handler. Otherwise, use the default handler.
-			if(parseChar[currentChar]){
-				parseChar[currentChar]();
+			if(parseChar[_currentChar]){
+				parseChar[_currentChar]();
 			} else {
 				parseChar["default"]();
-			}	
+			}		
 		}
 	};
 	
 	this.dumpStrings = function(){
-
 		for(var i=0;i<_stringObjects.length;i++){
 			winston.log('info', _stringObjects[i]);
 		}
@@ -608,6 +689,12 @@ function Parser(){
 	this.dumpComments = function(){
 		for(var i=0;i<_commentObjects.length;i++){
 			winston.log('info', _commentObjects[i]);
+		}
+	},
+	
+	this.dumpFunctions = function(){
+		for(var i=0;i<_functionObjects.length;i++){
+			winston.log('info', _functionObjects[i]);
 		}
 	}
 }
