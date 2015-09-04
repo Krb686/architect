@@ -11,6 +11,21 @@ winston.add(winston.transports.File, {
 //EXPORTS
 module.exports = Parser;
 
+Object.defineProperty(Object.prototype, "extend", {
+	enumerable:false,
+	value: function(from){
+		var props = Object.getOwnPropertyNames(from);
+		var dest = this;
+		props.forEach(function(name){
+			if (name in dest){
+				var destination = Object.getOwnPropertyDescriptor(from, name);
+				Object.defineProperty(dest, name, destination);
+			}
+		});
+		return this;
+	}
+});
+
 
 //CODE
 function Parser(){
@@ -34,13 +49,8 @@ function Parser(){
 	var _commentLength = 0;
 	var _forwardSlashCount = 0;
 	var _multiLineEndStar = false;
-	var _tempCommentObject = {
-		length: 0,
-		text: "",
-		multiLine: false,
-		startLine: 0,
-		endLine: 0
-	};
+
+	var _tempCommentObject = {};
 	
 	var resetTempComment = function(){
 		_tempCommentObject = {
@@ -51,6 +61,7 @@ function Parser(){
 			endLine: 0
 		};
 	}
+	resetTempComment();
 	
 	/*
 	*
@@ -61,12 +72,7 @@ function Parser(){
 	var _insideString = false;
 	var _stringType = "";
 	var _stringEscapeChar = false;
-	var _tempStringObject = {
-		length: 0,
-		text: "",
-		startLine: 0,
-		endLine: 0
-	};
+	var _tempStringObject = {};
 	
 	var resetTempString = function(){
 		_tempStringObject = {
@@ -76,18 +82,14 @@ function Parser(){
 			endLine: 0
 		};
 	}
+	resetTempString();
 	
 	//Regular Expression Stuff
 	var _insideRegExp = false;
 	var _regExpEscapeChar = false;
 	var _regExpSpecialChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@$)}]<>";
 	var _regExpRestriction = false;
-	var _tempRegExpObject = {
-		length: 0,
-		text: "",
-		startLine: 0,
-		endLine: 0
-	};
+	var _tempRegExpObject = {};
 	
 	var resetTempRegExp = function(){
 		_tempRegExpObject = {
@@ -97,23 +99,21 @@ function Parser(){
 			endLine: 0
 		};
 	};
-	
-	//Function stuff
+	resetTempRegExp();
+
+	// ================================ FUNCTION ================================
+	// ==========================================================================
 	var functionText = ['f', 'u', 'n', 'c', 't', 'i', 'o', 'n'];
 	var functionCheckIndex = 0;
-	var functionFlag = true;
-	var _tempFunctionObject = {
-		length: 0,
-		text: "",
-		startLine: 0,
-		endLine: 0,
-		parameters: [],
-		type: "",
-		name: "",
-		anonymous: false
-	};
-	
-	var resetFunctionObject = function(){
+	var functionFlag = false;
+	var functionDepth = 0;
+
+	// This is required since functions can be nested, unlike comments, strings and regexps
+        var _tempFunctionObjectArray = [];
+
+	var _tempFunctionObject = {};
+
+	var resetTempFunctionObject = function(){
 		_tempFunctionObject = {
 			length: 0,
 			text: "",
@@ -125,16 +125,78 @@ function Parser(){
 			anonymous: false
 		};
 	};
+	resetTempFunctionObject();
+
+	var updateTempFunctionObjects = function(){
+		for(i=0;i<_tempFunctionObjectArray.length;i++){
+			_tempFunctionObjectArray[i].length++;
+			_tempFunctionObjectArray[i].text += _currentChar;
+		}
+	};
+
+	var openedFunction = false;
+	// ==========================================================================
+	// ==========================================================================
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	// ============================= OBJECT LITERALS ============================
+        // ==========================================================================
+	var literalObjectFlag = false;
+	var literalDepth = 0;
+
+	var _tempLiteralObjectArray =[];
+
+	var _tempLiteralObject = {};
+
+	var resetTempLiteralObject = function(){
+		_tempLiteralObject = {
+                	length: 0,
+                	text: "",
+                	startLine: 0,
+                	endLine: 0,
+                	propertyCount: 0,
+                	propertyNames: []
+		};
+	};
+
+	resetTempLiteralObject();
+
+	var updateTempLiteralObjects = function(){
+		for(i=0;i<_tempLiteralObjectArray.length;i++){
+			_tempLitObject =_tempLiteralObjectArray[i];
+			_tempLitObject.length++;
+			_tempLitObject.text += _currentChar;
+		}
+	};
+
+
+
+	// ==========================================================================
+        // ==========================================================================
 	
 	var alphaString = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	var numericString = "0123456789";
-	
+
+	var bracketStack = [];
 	
 	//Object Arrays
 	var _commentObjects = [];
 	var _stringObjects = [];
 	var _regExpObjects = [];
 	var _functionObjects = [];
+	var _literalObjects = [];
 	
 	var parseChar = {
 		"default": function(){
@@ -213,7 +275,11 @@ function Parser(){
 							//variable or typo!!
 							if(_fileString[_fileIndex+1] === " " || _fileString[_fileIndex+1] === "("){
 								functionFlag = true;
-							
+							        functionDepth++;
+								bracketStack.push("function");
+								console.log("opened a function at :" +_currentLine);
+								openedFunction = true;
+
 								_tempFunctionObject.startLine = _currentLine;
 								_tempFunctionObject.length = 8;
 								_tempFunctionObject.text = "function"
@@ -235,9 +301,13 @@ function Parser(){
 								} else {
 									//Shouldn't be here!
 								}
+								//console.log("Start1: " + _tempFunctionObject.startLine);
+								var copy = JSON.parse(JSON.stringify(_tempFunctionObject));
+								//console.log("Start2: " + copy.startLine);
+								_tempFunctionObjectArray.push(copy);
+								resetTempFunctionObject();
 								
-								_functionObjects.push(_tempFunctionObject);
-								resetFunctionObject();
+								
 							} else {
 								functionCheckIndex = 0;
 							}
@@ -291,8 +361,6 @@ function Parser(){
 				}				
 				
 			}
-		
-		
 		},
 		
 		"/": function(){
@@ -636,6 +704,84 @@ function Parser(){
 			}
 				
 			
+		},
+
+		"{": function(){
+			if(_insideComment){
+
+			} else if(_insideString){
+
+			} else if(_insideRegExp){
+
+			} else {
+				if(!openedFunction){
+					//Need to do a backwards check.
+					//If = OR : is reached, its a literal.a
+
+					var leadingChar = "";
+					var backwardsIndex = _fileIndex;
+
+					while(leadingChar != "=" && leadingChar != ":" && leadingChar != ")" && leadingChar != "o" && leadingChar != ","){
+						leadingChar = _fileString[backwardsIndex--];
+					}
+
+					if(leadingChar === "=" || leadingChar === ":" || leadingChar === ","){
+						//object literal
+						literalObjectFlag = true;
+						literalDepth++;
+						bracketStack.push("literal");
+						console.log("opened a literal at : " + _currentLine);
+
+						_tempLiteralObject.startLine = _currentLine;
+						_tempLiteralObjectArray.push(_tempLiteralObject);
+						resetTempLiteralObject();
+					} else {
+						//control statement
+						bracketStack.push("control");
+						console.log("opened a control at : " + _currentLine);
+					}
+				} else {
+					openedFunction = false;
+				}
+			}
+		},
+
+		"}": function(){
+			if(_insideComment){
+	
+			} else if(_insideString){
+	
+			} else if(_insideRegExp){
+	
+			} else {
+				var lastOpenBracketType = bracketStack.pop();
+
+				if(lastOpenBracketType == "function") {
+					console.log("closed a function at :" + _currentLine);
+					functionDepth--;
+					var object = _tempFunctionObjectArray.pop();
+					//winston.log('info', "adding:")
+					//winston.log('info', _tempFunctionObject.text);	
+					object.endLine = _currentLine;
+					console.log("Before pushing: " + object.startLine);
+					_functionObjects.push(object);
+					//winston.log('info', "length ==: " + _functionObjects.length);
+					//winston.log('info', "start=:" + _tempFunctionObject.startLine);
+					//winston.log('info', "end=:" + _tempFunctionObject.endLine);
+
+				} else if(lastOpenBracketType == "literal"){
+					console.log("closed a literal at :" + _currentLine);
+					literalDepth--;
+					_tempLiteralObject = _tempLiteralObjectArray.pop();
+					_tempLiteralObject.endLine = _currentLine;
+
+					_literalObjects.push(_tempLiteralObject);
+					resetTempLiteralObject();
+				} else if(lastOpenBracketType == "control"){	
+					console.log("closed a control at :" + _currentLine);
+
+				}
+			}
 		}
 	};
 
@@ -670,7 +816,15 @@ function Parser(){
 				parseChar[_currentChar]();
 			} else {
 				parseChar["default"]();
-			}		
+			}
+
+			if(_tempFunctionObjectArray.length > 0){
+                                updateTempFunctionObjects();
+                        }
+
+			if(_tempLiteralObjectArray.length > 0){
+				updateTempLiteralObjects();
+			}	
 		}
 	};
 	
