@@ -2,10 +2,86 @@
 var fs = require('fs');
 var winston = require('winston');
 
-winston.add(winston.transports.File, {
-	filename: 'winston.log',
-	json: false
+
+// ======================================================================
+// =================== Create loggers ===================================
+var stringLogger = new (winston.Logger)({
+	transports: [
+		new (winston.transports.File)({
+			name: 'log-strings',
+			filename: './logs/strings.log',
+			level: 'strings',
+			json: false
+		})
+	],
+	levels: {
+		strings: 1
+	}
 });
+
+
+var commentLogger = new (winston.Logger)({
+        transports: [
+                new (winston.transports.File)({
+                        name: 'log-comments',
+                        filename: './logs/comments.log',
+                        level: 'comments',
+			json: false
+                })
+        ],
+        levels: {
+                comments: 1
+        }
+});
+
+var regularExpressionLogger = new (winston.Logger)({
+        transports: [
+                new (winston.transports.File)({
+                        name: 'log-regexps',
+                        filename: './logs/regexps.log',
+                        level: 'regexps',
+			json: false
+                })
+        ],
+        levels: {
+                regexps: 1
+        }
+});
+
+var functionLogger = new (winston.Logger)({
+        transports: [
+                new (winston.transports.File)({
+                        name: 'log-functions',
+                        filename: './logs/functions.log',
+                        level: 'functions',
+			json: false
+                })
+        ],
+        levels: {
+                functions: 1
+        }
+});
+
+var literalLogger = new (winston.Logger)({
+        transports: [
+                new (winston.transports.File)({
+                        name: 'log-literals',
+                        filename: './logs/literals.log',
+                        level: 'literals',
+			json: false
+                })
+        ],
+        levels: {
+                literals: 1
+        }
+});
+// ================================================================
+
+
+//winston.add(winston.transports.File, {
+//	filename: 'winston.log',
+//	json: false
+//});
 
 
 //EXPORTS
@@ -181,6 +257,19 @@ function Parser(){
 		}
 	};
 
+	var backwardsScan = function(stopString){
+		var backwardsIndex = _fileIndex
+		var leadingChar = _fileString[backwardsIndex];
+
+
+		while(stopString.indexOf(leadingChar) == -1){
+			leadingChar = _fileString[backwardsIndex--];
+		}
+
+		return leadingChar;
+
+	};
+
 
 
 	// ==========================================================================
@@ -277,7 +366,6 @@ function Parser(){
 								functionFlag = true;
 							        functionDepth++;
 								bracketStack.push("function");
-								console.log("opened a function at :" +_currentLine);
 								openedFunction = true;
 
 								_tempFunctionObject.startLine = _currentLine;
@@ -285,13 +373,15 @@ function Parser(){
 								_tempFunctionObject.text = "function"
 								functionCheckIndex = 0;
 								
-								var leadingChar = "";
-								var backwardsIndex = _fileIndex - 8;
+								//var leadingChar = "";
+								//var backwardsIndex = _fileIndex - 8;
 								
-								while(leadingChar !== "=" && leadingChar !== ":" && leadingChar !== "\n"){
-									leadingChar = _fileString[backwardsIndex--];
-								}
-								
+								//while(leadingChar !== "=" && leadingChar !== ":" && leadingChar !== "\n"){
+								//	leadingChar = _fileString[backwardsIndex--];
+								//}
+							
+								var leadingChar = backwardsScan("=:\n");
+
 								if(leadingChar === "="){
 									_tempFunctionObject.type = "assignment";
 								} else if(leadingChar === ":"){
@@ -706,6 +796,7 @@ function Parser(){
 			
 		},
 
+		//handle {
 		"{": function(){
 			if(_insideComment){
 
@@ -718,19 +809,21 @@ function Parser(){
 					//Need to do a backwards check.
 					//If = OR : is reached, its a literal.a
 
-					var leadingChar = "";
-					var backwardsIndex = _fileIndex;
-
-					while(leadingChar != "=" && leadingChar != ":" && leadingChar != ")" && leadingChar != "o" && leadingChar != ","){
-						leadingChar = _fileString[backwardsIndex--];
-					}
+					// Literals should always have: =, :,or , to the left.
+					//	
+					// Control statements should always have: ), e, or o to the left.
+					//	if (foo == 1){
+					//
+					//	else {
+					//
+					//	
+					var leadingChar = backwardsScan("=:)eo,");
 
 					if(leadingChar === "=" || leadingChar === ":" || leadingChar === ","){
 						//object literal
 						literalObjectFlag = true;
 						literalDepth++;
 						bracketStack.push("literal");
-						console.log("opened a literal at : " + _currentLine);
 
 						_tempLiteralObject.startLine = _currentLine;
 						_tempLiteralObjectArray.push(_tempLiteralObject);
@@ -738,7 +831,6 @@ function Parser(){
 					} else {
 						//control statement
 						bracketStack.push("control");
-						console.log("opened a control at : " + _currentLine);
 					}
 				} else {
 					openedFunction = false;
@@ -746,6 +838,7 @@ function Parser(){
 			}
 		},
 
+		// handle }
 		"}": function(){
 			if(_insideComment){
 	
@@ -757,28 +850,21 @@ function Parser(){
 				var lastOpenBracketType = bracketStack.pop();
 
 				if(lastOpenBracketType == "function") {
-					console.log("closed a function at :" + _currentLine);
 					functionDepth--;
 					var object = _tempFunctionObjectArray.pop();
-					//winston.log('info', "adding:")
-					//winston.log('info', _tempFunctionObject.text);	
+					object.text += "}";
 					object.endLine = _currentLine;
-					console.log("Before pushing: " + object.startLine);
 					_functionObjects.push(object);
-					//winston.log('info', "length ==: " + _functionObjects.length);
-					//winston.log('info', "start=:" + _tempFunctionObject.startLine);
-					//winston.log('info', "end=:" + _tempFunctionObject.endLine);
 
 				} else if(lastOpenBracketType == "literal"){
-					console.log("closed a literal at :" + _currentLine);
 					literalDepth--;
-					_tempLiteralObject = _tempLiteralObjectArray.pop();
-					_tempLiteralObject.endLine = _currentLine;
+					var object = _tempLiteralObjectArray.pop();
+					object.text += "}";
+					object.endLine = _currentLine;
 
-					_literalObjects.push(_tempLiteralObject);
+					_literalObjects.push(object);
 					resetTempLiteralObject();
 				} else if(lastOpenBracketType == "control"){	
-					console.log("closed a control at :" + _currentLine);
 
 				}
 			}
@@ -829,26 +915,58 @@ function Parser(){
 	};
 	
 	this.dumpStrings = function(){
-		for(var i=0;i<_stringObjects.length;i++){
-			winston.log('info', _stringObjects[i]);
+		if (_stringObjects.length == 0){
+			stringLogger.log('strings', "No strings!");
+		} else {
+			for(var i=0;i<_stringObjects.length;i++){
+				stringLogger.log('strings', _stringObjects[i]);
+				console.log("dumping strings...");
+			}
 		}
 	}, 
 	
 	this.dumpRegularExpressions = function(){
-		for(var i=0;i<_regExpObjects.length;i++){
-			winston.log('info', _regExpObjects[i]);
+		if (_regExpObjects.length == 0){
+			regularExpressionLogger.log('regexps', "No regular expressions!");
+		} else {
+			for(var i=0;i<_regExpObjects.length;i++){
+				regularExpressionLogger.log('regexps', _regExpObjects[i]);
+				console.log("dumping regexps...");
+			}
 		}
 	},
 	
 	this.dumpComments = function(){
-		for(var i=0;i<_commentObjects.length;i++){
-			winston.log('info', _commentObjects[i]);
+		if (_commentObjects.length == 0){
+			commentLogger.log('comments', "No comments!");
+		} else {
+			for(var i=0;i<_commentObjects.length;i++){
+				commentLogger.log('comments', _commentObjects[i]);
+				console.log("dumping comments...");
+			}
 		}
 	},
 	
 	this.dumpFunctions = function(){
-		for(var i=0;i<_functionObjects.length;i++){
-			winston.log('info', _functionObjects[i]);
+		if (_functionObjects.length == 0){
+			functionLogger.log('functions', "No functions!");
+		} else {
+			for(var i=0;i<_functionObjects.length;i++){
+				functionLogger.log('functions', _functionObjects[i]);
+				console.log("dumping functions...");
+			}
 		}
+	}
+
+	this.dumpObjectLiterals = function(){
+		if (_literalObjects.length == 0){
+			literalLogger.log('literals', "No object literals!");
+		} else {
+			for(var i=0;i<_literalObjects.length;i++){
+				literalLogger.log('literals', _literalObjects[i]);
+				console.log("dumping literals...");
+			}
+		}
+
 	}
 }
