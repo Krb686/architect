@@ -87,21 +87,6 @@ var literalLogger = new (winston.Logger)({
 //EXPORTS
 module.exports = Parser;
 
-Object.defineProperty(Object.prototype, "extend", {
-	enumerable:false,
-	value: function(from){
-		var props = Object.getOwnPropertyNames(from);
-		var dest = this;
-		props.forEach(function(name){
-			if (name in dest){
-				var destination = Object.getOwnPropertyDescriptor(from, name);
-				Object.defineProperty(dest, name, destination);
-			}
-		});
-		return this;
-	}
-});
-
 
 //CODE
 function Parser(){
@@ -469,7 +454,8 @@ function Parser(){
 						
 						//Create the multiline comment object
 						if(_commentLength > 0){
-							_commentObjects.push(_tempCommentObject);
+							var copy = JSON.parse(JSON.stringify(_tempCommentObject));
+							_commentObjects.push(copy);
 							
 							_commentLength = 0;
 						} else {
@@ -503,8 +489,9 @@ function Parser(){
 					_tempRegExpObject.length++;
 					_tempRegExpObject.text += _currentChar;
 					_tempRegExpObject.endLine = _currentLine;
-					
-					_regExpObjects.push(_tempRegExpObject);
+				
+					var copy = JSON.parse(JSON.stringify(_tempRegExpObject));	
+					_regExpObjects.push(copy);
 					resetTempRegExp();
 				}
 			} else {
@@ -600,7 +587,8 @@ function Parser(){
 					_insideString = false;
 					_stringType = "";
 					_tempStringObject.endLine = _currentLine;
-					_stringObjects.push(_tempStringObject);
+					var copy = JSON.parse(JSON.stringify(_tempStringObject));
+					_stringObjects.push(copy);
 					resetTempString();
 				} else if(_stringType === "double"){
 					_tempStringObject.length++;
@@ -659,7 +647,8 @@ function Parser(){
 						_insideString = false;
 						_stringType = "";
 						_tempStringObject.endLine = _currentLine;
-						_stringObjects.push(_tempStringObject);
+						var copy = JSON.parse(JSON.stringify(_tempStringObject));
+						_stringObjects.push(copy);
 						resetTempString();
 					}
 				} else {
@@ -707,7 +696,8 @@ function Parser(){
 					_tempCommentObject.endLine = _currentLine;
 					//Normal single line comment
 					if(_commentLength > 0){
-						_commentObjects.push(_tempCommentObject);
+						var copy = JSON.parse(JSON.stringify(_tempCommentObject));
+						_commentObjects.push(copy);
 						resetTempComment();
 						_commentLength = 0;
 					//Special case of single line comment - "//\n" - Essentially a useless comment
@@ -826,7 +816,8 @@ function Parser(){
 						bracketStack.push("literal");
 
 						_tempLiteralObject.startLine = _currentLine;
-						_tempLiteralObjectArray.push(_tempLiteralObject);
+						var copy = JSON.parse(JSON.stringify(_tempLiteralObject));
+						_tempLiteralObjectArray.push(copy);
 						resetTempLiteralObject();
 					} else {
 						//control statement
