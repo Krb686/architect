@@ -121,7 +121,7 @@ function Parser(){
 			startLine: 0,
 			endLine: 0
 		};
-	}
+	};
 	resetTempComment();
 	
 	/*
@@ -864,7 +864,9 @@ function Parser(){
 
 	//Bind each function in parseChar to the instance
 	for (key in parseChar){
-		parseChar[key] = parseChar[key].bind(this);
+		if(parseChar.hasOwnProperty(key)){
+			parseChar[key] = parseChar[key].bind(this);
+		}
 	
 	}
 	
@@ -906,7 +908,7 @@ function Parser(){
 	};
 	
 	this.dumpStrings = function(){
-		if (_stringObjects.length == 0){
+		if (_stringObjects.length === 0){
 			stringLogger.log('strings', "No strings!");
 		} else {
 			for(var i=0;i<_stringObjects.length;i++){
@@ -914,10 +916,10 @@ function Parser(){
 				console.log("dumping strings...");
 			}
 		}
-	}, 
+	};
 	
 	this.dumpRegularExpressions = function(){
-		if (_regExpObjects.length == 0){
+		if (_regExpObjects.length === 0){
 			regularExpressionLogger.log('regexps', "No regular expressions!");
 		} else {
 			for(var i=0;i<_regExpObjects.length;i++){
@@ -925,10 +927,10 @@ function Parser(){
 				console.log("dumping regexps...");
 			}
 		}
-	},
+	};
 	
 	this.dumpComments = function(){
-		if (_commentObjects.length == 0){
+		if (_commentObjects.length === 0){
 			commentLogger.log('comments', "No comments!");
 		} else {
 			for(var i=0;i<_commentObjects.length;i++){
@@ -936,10 +938,10 @@ function Parser(){
 				console.log("dumping comments...");
 			}
 		}
-	},
+	};
 	
 	this.dumpFunctions = function(){
-		if (_functionObjects.length == 0){
+		if (_functionObjects.length === 0){
 			functionLogger.log('functions', "No functions!");
 		} else {
 			for(var i=0;i<_functionObjects.length;i++){
@@ -947,10 +949,10 @@ function Parser(){
 				console.log("dumping functions...");
 			}
 		}
-	}
+	};
 
 	this.dumpObjectLiterals = function(){
-		if (_literalObjects.length == 0){
+		if (_literalObjects.length === 0){
 			literalLogger.log('literals', "No object literals!");
 		} else {
 			for(var i=0;i<_literalObjects.length;i++){
@@ -959,5 +961,5 @@ function Parser(){
 			}
 		}
 
-	}
+	};
 }
