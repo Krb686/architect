@@ -142,7 +142,7 @@ function Parser(){
 			startLine: 0,
 			endLine: 0
 		};
-	}
+	};
 	resetTempString();
 	
 	//Regular Expression Stuff
@@ -243,7 +243,7 @@ function Parser(){
 	};
 
 	var backwardsScan = function(stopString){
-		var backwardsIndex = _fileIndex
+		var backwardsIndex = _fileIndex;
 		var leadingChar = _fileString[backwardsIndex];
 
 
@@ -355,7 +355,7 @@ function Parser(){
 
 								_tempFunctionObject.startLine = _currentLine;
 								_tempFunctionObject.length = 8;
-								_tempFunctionObject.text = "function"
+								_tempFunctionObject.text = "function";
 								functionCheckIndex = 0;
 								
 								//var leadingChar = "";
@@ -490,8 +490,8 @@ function Parser(){
 					_tempRegExpObject.text += _currentChar;
 					_tempRegExpObject.endLine = _currentLine;
 				
-					var copy = JSON.parse(JSON.stringify(_tempRegExpObject));	
-					_regExpObjects.push(copy);
+					var regExpCopy = JSON.parse(JSON.stringify(_tempRegExpObject));	
+					_regExpObjects.push(regExpCopy);
 					resetTempRegExp();
 				}
 			} else {
@@ -842,18 +842,18 @@ function Parser(){
 
 				if(lastOpenBracketType == "function") {
 					functionDepth--;
-					var object = _tempFunctionObjectArray.pop();
-					object.text += "}";
-					object.endLine = _currentLine;
-					_functionObjects.push(object);
+					var functionCopy = _tempFunctionObjectArray.pop();
+					functionCopy.text += "}";
+					functionCopy.endLine = _currentLine;
+					_functionObjects.push(functionCopy);
 
 				} else if(lastOpenBracketType == "literal"){
 					literalDepth--;
-					var object = _tempLiteralObjectArray.pop();
-					object.text += "}";
-					object.endLine = _currentLine;
+					var literalCopy = _tempLiteralObjectArray.pop();
+					literalCopy.text += "}";
+					literalCopy.endLine = _currentLine;
 
-					_literalObjects.push(object);
+					_literalObjects.push(literalCopy);
 					resetTempLiteralObject();
 				} else if(lastOpenBracketType == "control"){	
 
