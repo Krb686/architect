@@ -104,7 +104,8 @@ function Parser(){
 	var _lineCount = 0;
 	var _lineArray = [];
 	
-	//CommentState
+        // ================================ COMMENT =================================
+        // ==========================================================================
 	var _insideComment = false;
 	var _commentType = "";
 	var _commentLength = 0;
@@ -123,13 +124,18 @@ function Parser(){
 		};
 	};
 	resetTempComment();
+
+        var commentHandler = function(commentType){
+		_insideComment = true;
+		_forwardSlashCount = 0;
+		_commentType = commentType;
+               	_tempCommentObject.startLine = _currentLine;
+
+               	resetTempRegExp();
+        };
 	
-	/*
-	*
-	*	test multiline
-	*/
-	
-	//StringState
+        // ================================ STRING ===================================
+        // ===========================================================================
 	var _insideString = false;
 	var _stringType = "";
 	var _stringEscapeChar = false;
@@ -144,8 +150,15 @@ function Parser(){
 		};
 	};
 	resetTempString();
-	
-	//Regular Expression Stuff
+
+        var stringHandler = function(stringType){
+		_insideString = true;
+                _stringType = stringType;
+                _tempStringObject.startLine = _currentLine;
+        };
+        
+        // ================================ REGEXP ==================================
+        // ==========================================================================	
 	var _insideRegExp = false;
 	var _regExpEscapeChar = false;
 	var _regExpSpecialChars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@$)}]<>";
@@ -196,21 +209,36 @@ function Parser(){
 	};
 
 	var openedFunction = false;
-	// ==========================================================================
-	// ==========================================================================
 
+        // ================================================
+        // ======== Function Handler ======================
+        // ================================================
+        var functionHandler = function(){
+            functionFlag = true;
+            functionDepth++;
+            bracketStack.push("function");
+            openedFunction = true;
 
+            _tempFunctionObject.startLine = _currentLine;
+            _tempFunctionObject.length = 8;
+            _tempFunctionObject.text = "functio";
+            functionCheckIndex = 0;
 
+            var leadingChar = backwardsScan("=:\n");
 
-
-
-
-
-
-
-
-
-
+            if(leadingChar === "="){
+                _tempFunctionObject.type = "assignment";
+            } else if(leadingChar === ":"){
+                _tempFunctionObject.type = "property";
+            } else if(leadingChar === "\n"){
+                _tempFunctionObject.type = "declaration";
+            } else {
+                //Shouldn't be here!
+            }
+            var copy = JSON.parse(JSON.stringify(_tempFunctionObject));
+            _tempFunctionObjectArray.push(copy);
+            resetTempFunctionObject();
+        };
 
 	// ============================= OBJECT LITERALS ============================
         // ==========================================================================
@@ -348,41 +376,7 @@ function Parser(){
 							//If next char is a space or (, it is indeed a function. Otherwise, its a 
 							//variable or typo!!
 							if(_fileString[_fileIndex+1] === " " || _fileString[_fileIndex+1] === "("){
-								functionFlag = true;
-							        functionDepth++;
-								bracketStack.push("function");
-								openedFunction = true;
-
-								_tempFunctionObject.startLine = _currentLine;
-								_tempFunctionObject.length = 8;
-								_tempFunctionObject.text = "function";
-								functionCheckIndex = 0;
-								
-								//var leadingChar = "";
-								//var backwardsIndex = _fileIndex - 8;
-								
-								//while(leadingChar !== "=" && leadingChar !== ":" && leadingChar !== "\n"){
-								//	leadingChar = _fileString[backwardsIndex--];
-								//}
-							
-								var leadingChar = backwardsScan("=:\n");
-
-								if(leadingChar === "="){
-									_tempFunctionObject.type = "assignment";
-								} else if(leadingChar === ":"){
-									_tempFunctionObject.type = "property";
-								} else if(leadingChar === "\n"){
-									_tempFunctionObject.type = "declaration";
-								} else {
-									//Shouldn't be here!
-								}
-								//console.log("Start1: " + _tempFunctionObject.startLine);
-								var copy = JSON.parse(JSON.stringify(_tempFunctionObject));
-								//console.log("Start2: " + copy.startLine);
-								_tempFunctionObjectArray.push(copy);
-								resetTempFunctionObject();
-								
-								
+                                                                functionHandler();
 							} else {
 								functionCheckIndex = 0;
 							}
@@ -498,13 +492,7 @@ function Parser(){
 				//Only increment this if NOT already in a comment, and NOT in a string.
 				_forwardSlashCount++;
 				if(_forwardSlashCount === 2){
-					_insideComment = true;
-					_commentType = "single";
-					_forwardSlashCount = 0;
-					_tempCommentObject.startLine = _currentLine;
-					
-					resetTempRegExp();
-					
+                                        commentHandler("single");
 				} else {
 					//Could potentially be a reg exp
 					//Must be first char after an =, (, {, [, |, !, #, %, ^, &, *, -, +, \, ?, :, ;
@@ -610,9 +598,7 @@ function Parser(){
 					_tempRegExpObject.text += _currentChar;
 					_forwardSlashCount = 0;
 				} else {
-					_insideString = true;
-					_stringType = "single";
-					_tempStringObject.startLine = _currentLine;
+					stringHandler("single");
 				}
 				
 				if(_regExpRestriction){
@@ -665,9 +651,7 @@ function Parser(){
 					_tempRegExpObject.length++;
 					_tempRegExpObject.text += _currentChar;
 				} else {
-					_insideString = true;
-					_stringType = "double";
-					_tempStringObject.startLine = _currentLine;
+					stringHandler("double");
 				}
 				
 				if(_regExpRestriction){
@@ -772,10 +756,7 @@ function Parser(){
 				}
 			} else {
 				if(_forwardSlashCount === 1){
-					_forwardSlashCount = 0;
-					_insideComment = true;
-					_commentType = "multi";
-					_tempCommentObject.startLine = _currentLine;
+					commentHandler("multi");
 				}
 				
 				if(_regExpRestriction){
